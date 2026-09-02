@@ -67,10 +67,24 @@ mine-predmaint-ai/
 │   ├── work_orders_view.py         # Tablero y flujo de estados de Órdenes de Trabajo
 │   ├── reports_view.py             # Generación y descarga directa en PDF, Word y Excel
 │   └── admin_view.py               # Gestión de usuarios, matriz RBAC y visor de auditoría
+├── docs/                           # Documentación completa de usuario y metodológica
+│   ├── MANUAL_DE_USUARIO.md        # Guía detallada: qué hace cada botón, métrica y acción
+│   ├── GUIA_METODOLOGICA_CRISP_DM.md # Fundamentación de IA, matemáticas y metodología CRISP-DM
+│   └── ROLES_Y_PERMISOS.md         # Matriz RBAC, credenciales y flujo de trabajo entre roles
 ├── train_colab_pipeline.py         # Script autónomo optimizado para GPU CUDA (Google Colab)
 ├── tests/                          # Suite de pruebas automatizadas con pytest (15 tests)
 └── requirements.txt                # Especificación de dependencias del proyecto
 ```
+
+---
+
+## 📚 Documentación de Usuario y Guías del Sistema
+
+Para consultar el detalle de cada pantalla, botón, fórmula o flujo de trabajo, revisa los documentos en la carpeta `docs/`:
+
+1. 📘 **[Manual de Usuario (MANUAL_DE_USUARIO.md)](file:///home/bilton/Universidad/CICLO-VIII/ING-SOFTWARE-II/SESION-02/mine-predmaint-ai/docs/MANUAL_DE_USUARIO.md):** Guía exhaustiva pantalla por pantalla. Explica qué es cada KPI (MTBF, MTTR, OEE), qué hacen los botones del simulador, cómo se interpretan los gráficos y cómo se cierran las órdenes de trabajo.
+2. 🔬 **[Guía Metodológica CRISP-DM (GUIA_METODOLOGICA_CRISP_DM.md)](file:///home/bilton/Universidad/CICLO-VIII/ING-SOFTWARE-II/SESION-02/mine-predmaint-ai/docs/GUIA_METODOLOGICA_CRISP_DM.md):** Explicación de las 6 fases de CRISP-DM, arquitectura de los 5 modelos de IA (Random Forest, XGBoost, SVM, CNN-LSTM, Autoencoder) y pruebas estadísticas de Wilcoxon y t-Student.
+3. 👥 **[Matriz de Roles y Permisos (ROLES_Y_PERMISOS.md)](file:///home/bilton/Universidad/CICLO-VIII/ING-SOFTWARE-II/SESION-02/mine-predmaint-ai/docs/ROLES_Y_PERMISOS.md):** Matriz RBAC completa, credenciales de los 4 perfiles y guía de flujo operativo paso a paso (desde que el operador detecta la anomalía hasta que el auditor descarga los reportes).
 
 ---
 
