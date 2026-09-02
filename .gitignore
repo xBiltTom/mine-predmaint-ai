@@ -1,0 +1,107 @@
+# =============================================================================
+# GITIGNORE - SISTEMA DE MANTENIMIENTO PREDICTIVO (MINEPREDMAINT AI)
+# =============================================================================
+
+# 1. Entornos Virtuales de Python
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.pyenv/
+
+# 2. Bytecode y Archivos Compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 3. Modelos Serializados y Checkpoints Pesados
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.bin
+*.h5
+*.pkl
+models_exported/
+!models/saved/.gitkeep
+
+# 4. Variables de Entorno, Credenciales y Secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+.streamlit/secrets.toml
+
+# 5. Reportes Generados y Salidas Temporales
+*.pdf
+*.docx
+*.xlsx
+*.csv.tmp
+Reporte_*.pdf
+Informe_*.docx
+Analitica_*.xlsx
+
+# 6. Caché de Pruebas y Cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# 7. IDEs y Editores de Código
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# 8. Archivos del Sistema Operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# 9. Jupyter Notebooks
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# 10. Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
