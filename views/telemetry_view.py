@@ -106,12 +106,10 @@ def render_telemetry_view():
             data = generate_live_telemetry_reading(selected_id, simulate_failure=True, failure_type=fail_mode)
             new_id = TelemetryRepository.insert(data)
             
-            # Evaluar con IA de inmediato
-            active_m = PredictionRepository.get_active_model()
-            if active_m and active_m.get("ruta_archivo"):
-                rf = RandomForestModel()
-                rf.load(active_m["ruta_archivo"])
-                diag = ModelRegistry.generate_diagnostic(rf, data)
+            # Evaluar con IA usando el modelo activo en producción
+            active_model, active_m = ModelRegistry.get_loaded_active_model()
+            if active_model and active_m:
+                diag = ModelRegistry.generate_diagnostic(active_model, data)
                 pred_id = PredictionRepository.insert_prediction(
                     equipo_id=selected_id,
                     modelo_id=active_m["id"],

@@ -11,9 +11,8 @@ class PredictionRepository:
                    hiperparametros: dict, ruta_archivo: str, usuario_id: Optional[int] = None,
                    es_activo: bool = True) -> int:
         if es_activo:
-            # Desactivar modelo anterior si este se activa
-            execute_query("UPDATE modelos_entrenados SET es_activo = FALSE WHERE nombre_algoritmo = %s;",
-                          (nombre,), commit=True, fetch="none")
+            # Desactivar todos los modelos anteriores para que solo haya uno activo globalmente
+            execute_query("UPDATE modelos_entrenados SET es_activo = FALSE;", commit=True, fetch="none")
         
         sql = """
             INSERT INTO modelos_entrenados (
@@ -28,6 +27,12 @@ class PredictionRepository:
                 json.dumps(hiperparametros), ruta_archivo, es_activo, usuario_id
             ))
             return cursor.fetchone()["id"]
+
+    @staticmethod
+    def set_active_model(model_id: int):
+        """Activa un modelo específico y desactiva todos los demás."""
+        execute_query("UPDATE modelos_entrenados SET es_activo = FALSE;", commit=True, fetch="none")
+        execute_query("UPDATE modelos_entrenados SET es_activo = TRUE WHERE id = %s;", (model_id,), commit=True, fetch="none")
 
     @staticmethod
     def list_models() -> List[Dict[str, Any]]:

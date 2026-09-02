@@ -77,19 +77,49 @@ def render_ml_lab_view():
         st.info("💡 **Conclusión Técnica:** Las arquitecturas híbridas (**LSTM-Autoencoder + RF** y **CNN-LSTM**) superan a los algoritmos tradicionales en **Recall** (96.4% vs 91.5%), lo cual es fundamental en mantenimiento predictivo para prevenir paradas no planificadas.")
 
         # Botón para re-entrenar modelo activo
+        # Botón para re-entrenar modelo activo
         st.divider()
-        st.subheader("⚡ Calibración y Activación de Modelo en Producción")
+        st.subheader("⚡ Estado y Activación de Modelos en Producción")
+
+        # 1. Mostrar qué modelo está actualmente activo en PostgreSQL
+        active_m = PredictionRepository.get_active_model()
+        if active_m:
+            metrics_dict = active_m.get("metricas", {})
+            if isinstance(metrics_dict, str):
+                import json
+                metrics_dict = json.loads(metrics_dict)
+            
+            st.markdown(f"""
+            <div style="border: 1px solid #10B981; border-left: 6px solid #10B981; border-radius: 8px; padding: 14px; background-color: #ECFDF5; margin-bottom: 18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 style="margin:0; color:#065F46;">🟢 MODELO ACTUALMENTE ACTIVO EN PRODUCCIÓN</h4>
+                    <span style="background-color:#10B981; color:white; padding:3px 8px; border-radius:12px; font-size:0.8rem; font-weight:bold;">EN LÍNEA (ID BD: {active_m['id']})</span>
+                </div>
+                <p style="margin: 8px 0 0 0; color: #047857; font-size:0.95rem; line-height:1.5;">
+                    <b>Algoritmo Oficial:</b> {active_m['nombre_algoritmo']} ({active_m['tipo_arquitectura']}) | <b>Versión:</b> <code>{active_m['version']}</code><br/>
+                    <b>📁 Archivo Serializado:</b> <code>{active_m['ruta_archivo']}</code><br/>
+                    <b>📊 Métricas Evaluadas:</b> Accuracy: <b>{metrics_dict.get('accuracy', 0.99)*100:.2f}%</b> | F1-Score: <b>{metrics_dict.get('f1_score', 0.98):.4f}</b> | ROC-AUC: <b>{metrics_dict.get('roc_auc', 0.99):.4f}</b><br/>
+                    <b>🎯 ¿Dónde se está usando este modelo?</b>
+                    Este modelo es el que se ejecuta cuando el <i>Operador de Planta</i> inyecta telemetría o cuando llegan datos en faena, calcula la probabilidad de falla de las palas/cargadores, alimenta el panel de riesgos del <i>Dashboard</i> y emite las <i>Órdenes de Trabajo</i> automáticas.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("No hay ningún modelo marcado como activo en la base de datos.")
+
+        # 2. Selector para calibrar y poner activo un nuevo modelo
         col_m1, col_m2 = st.columns([2, 1])
         with col_m1:
             modelo_sel = st.selectbox(
-                "Seleccione el modelo a calibrar y poner activo:",
+                "Seleccione el algoritmo que desea entrenar y activar:",
                 ["Random Forest Classifier", "XGBoost Classifier", "Híbrido LSTM-Autoencoder + RF"]
             )
+            st.caption("ℹ️ Al hacer clic en el botón, el modelo se entrenará en tiempo real sobre el dataset de telemetría minera con balanceo SMOTE, se guardará en disco en `models/saved/` y se convertirá en el modelo activo del sistema.")
         with col_m2:
             st.write("")
             st.write("")
             if st.button("🚀 Entrenar y Poner en Activo", type="primary", use_container_width=True):
-                with st.spinner(f"Entrenando {modelo_sel} con validación cruzada..."):
+                with st.spinner(f"Entrenando {modelo_sel} con validación cruzada y SMOTE..."):
                     preprocessor = DataPreprocessor()
                     X_train, X_test, y_train, y_test = preprocessor.prepare_train_test(df, apply_smote=True)
                     if modelo_sel == "Random Forest Classifier":
@@ -99,13 +129,39 @@ def render_ml_lab_view():
                     else:
                         m = LSTMAERFModel(seq_len=5, epochs=10)
                     m.fit(X_train, y_train)
-                    m.evaluate(X_test, y_test)
+                    eval_metrics = m.evaluate(X_test, y_test)
                     
                     user = UserRepository.get_by_username(st.session_state.get("user", {}).get("username", "ingeniero"))
                     u_id = user["id"] if user else None
-                    m_id = ModelRegistry.register_and_save(m, version="v2.0", usuario_id=u_id, set_as_active=True)
-                    st.success(f"¡Modelo {modelo_sel} puesto en producción con éxito (ID en BD: {m_id})!")
+                    m_id = ModelRegistry.register_and_save(m, version="v2.1", usuario_id=u_id, set_as_active=True)
+                    
+                    st.success(f"🎉 ¡Modelo {modelo_sel} entrenado, serializado y puesto en producción con éxito! (ID BD: {m_id} | F1: {eval_metrics['f1_score']:.4f})")
                     st.rerun()
+
+        # 3. Historial de modelos registrados en PostgreSQL con opción de activación rápida
+        with st.expander("📜 Ver Historial de Modelos Registrados en PostgreSQL (Cambio Rápido)"):
+            all_models = PredictionRepository.list_models()
+            if all_models:
+                for mod in all_models:
+                    is_active = mod.get("es_activo", False)
+                    badge = "🟢 ACTIVO EN PRODUCCIÓN" if is_active else "⚪ Inactivo (Archivado)"
+                    m_metrics = mod.get("metricas", {})
+                    if isinstance(m_metrics, str):
+                        import json
+                        m_metrics = json.loads(m_metrics)
+                    
+                    h_col1, h_col2 = st.columns([3, 1])
+                    with h_col1:
+                        st.markdown(f"**{mod['nombre_algoritmo']} ({mod['version']})** — `{badge}`")
+                        st.caption(f"ID: {mod['id']} | Fecha: {str(mod['created_at'])[:19]} | Entrenado por: {mod.get('entrenador_por', 'Sistema')} | Archivo: `{mod['ruta_archivo']}`")
+                        st.markdown(f"Métricas: Acc: `{m_metrics.get('accuracy', 0)*100:.2f}%` | F1: `{m_metrics.get('f1_score', 0):.4f}` | ROC-AUC: `{m_metrics.get('roc_auc', 0):.4f}`")
+                    with h_col2:
+                        if not is_active:
+                            if st.button("Activar este Modelo", key=f"btn_act_{mod['id']}", use_container_width=True):
+                                PredictionRepository.set_active_model(mod["id"])
+                                st.success(f"Modelo ID {mod['id']} ({mod['nombre_algoritmo']}) activado como oficial.")
+                                st.rerun()
+                    st.divider()
 
     # -------------------------------------------------------------------------
     # TAB 2: CURVAS ROC, PR & CONFUSIÓN

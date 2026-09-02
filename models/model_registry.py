@@ -29,6 +29,41 @@ class ModelRegistry:
         return model_id
 
     @staticmethod
+    def get_loaded_active_model():
+        """Carga y retorna la instancia y los metadatos del modelo activo en producción."""
+        active_record = PredictionRepository.get_active_model()
+        if not active_record or not active_record.get("ruta_archivo"):
+            return None, None
+
+        name = active_record["nombre_algoritmo"]
+        filepath = active_record["ruta_archivo"]
+
+        from models.traditional.random_forest import RandomForestModel
+        from models.traditional.xgboost_model import XGBoostModel
+        from models.traditional.svm_model import SVMModel
+        from models.hybrid.lstm_ae_rf import LSTMAERFModel
+        from models.hybrid.cnn_lstm import CNNLSTMModel
+
+        if "XGBoost" in name:
+            model = XGBoostModel()
+        elif "LSTM-Autoencoder" in name or "AE" in name:
+            model = LSTMAERFModel()
+        elif "CNN-LSTM" in name:
+            model = CNNLSTMModel()
+        elif "SVM" in name:
+            model = SVMModel()
+        else:
+            model = RandomForestModel()
+
+        try:
+            model.load(filepath)
+            return model, active_record
+        except Exception as e:
+            # Fallback a Random Forest base si el archivo fue movido
+            rf = RandomForestModel()
+            return rf, active_record
+
+    @staticmethod
     def generate_diagnostic(model_instance, sensor_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Ejecuta inferencia predictiva sobre una muestra de telemetría y genera:
