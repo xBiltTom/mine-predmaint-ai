@@ -130,11 +130,11 @@ class DocxReportGenerator:
 
         for ot in work_orders[:8]:
             r = table_ots.add_row().cells
-            r[0].text = ot.get("codigo_ot", "OT-XXXX")
-            r[1].text = ot.get("prioridad", "MEDIA")
-            r[2].text = ot.get("titulo", "")
-            r[3].text = ot.get("estado", "PENDIENTE")
-            r[4].text = ot.get("asignado_nombre", "Sin asignar")
+            r[0].text = str(ot.get("codigo_ot") or "OT-XXXX")
+            r[1].text = str(ot.get("prioridad") or "MEDIA")
+            r[2].text = str(ot.get("titulo") or "")
+            r[3].text = str(ot.get("estado") or "PENDIENTE")
+            r[4].text = str(ot.get("asignado_nombre") or "Sin asignar")
 
         buffer = BytesIO()
         doc.save(buffer)

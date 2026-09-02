@@ -129,7 +129,7 @@ class ExcelReportGenerator:
         for ot in work_orders:
             ws_ot.append([
                 ot["id"], ot["codigo_ot"], ot.get("codigo_tag", "EQ"), ot["prioridad"],
-                ot["titulo"], ot["estado"], ot.get("asignado_nombre", "Sin asignar"),
+                ot["titulo"], ot["estado"], str(ot.get("asignado_nombre") or "Sin asignar"),
                 str(ot.get("fecha_creacion", ""))[:19]
             ])
         autofit(ws_ot)
