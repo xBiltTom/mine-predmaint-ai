@@ -1,5 +1,6 @@
 """
 Vista de Generación y Exportación de Reportes Multiformato (PDF, Word, Excel).
+Integrada con el flujo secuencial y evidencias de confiabilidad para gerencia/auditoría.
 """
 import streamlit as st
 from datetime import datetime
@@ -12,10 +13,11 @@ from reports.pdf_generator import PDFReportGenerator
 from reports.docx_generator import DocxReportGenerator
 from reports.excel_generator import ExcelReportGenerator
 from auth.session import get_current_user
+from views.components.flow_guide import render_step_header, render_step_footer, navigate_to
 
 def render_reports_view():
-    st.title("📑 Generador de Reportes Ejecutivos e Informes Técnicos")
-    st.markdown("Exportación de reportes de auditoría, confiabilidad y mantenimiento en formatos estándar de la industria.")
+    # 1. Encabezado del Flujo (REPORTS)
+    render_step_header("REPORTS")
 
     user = get_current_user()
     author_name = user["nombre_completo"] if user else "Ingeniero de Mantenimiento"
@@ -38,7 +40,20 @@ def render_reports_view():
         "alertas_criticas": sum(1 for p in predictions if p["nivel_criticidad"] in ["ALTO", "CRITICO"])
     }
 
-    st.subheader("📥 Exportación Instantánea de Documentos")
+    # 2. Acciones Rápidas del Flujo
+    st.markdown("##### ⚡ Continuar el Recorrido del Sistema:")
+    rep_c1, rep_c2 = st.columns(2)
+    with rep_c1:
+        if st.button("⚙️ Revisar Trazabilidad y Logs de Auditoría (Paso 7)", use_container_width=True):
+            navigate_to("7️⃣ ⚙️ Administración & Auditoría")
+    with rep_c2:
+        if st.button("📊 Volver al Panel Ejecutivo (Paso 1)", use_container_width=True):
+            navigate_to("1️⃣ 📊 Dashboard Ejecutivo")
+
+    st.divider()
+
+    st.subheader("📥 Exportación Instantánea de Documentos Oficiales")
+    st.caption("Generados en tiempo real consultando la base de datos PostgreSQL y los modelos de IA activos:")
     col_pdf, col_docx, col_xlsx = st.columns(3)
 
     # 1. Reporte PDF
@@ -128,3 +143,6 @@ def render_reports_view():
         st.dataframe(predictions, use_container_width=True, hide_index=True)
     with prev_tab3:
         st.dataframe(work_orders, use_container_width=True, hide_index=True)
+
+    # Pie de Navegación del Flujo
+    render_step_footer("REPORTS")

@@ -20,18 +20,11 @@ from models.statistical_tests import StatisticalComparator
 from models.model_registry import ModelRegistry
 from database.repositories.prediction_repo import PredictionRepository
 from database.repositories.user_repo import UserRepository
+from views.components.flow_guide import render_step_header, render_step_footer, navigate_to
 
 def render_ml_lab_view():
-    st.title("🤖 Laboratorio de Inteligencia Artificial & Benchmarking")
-    st.markdown("Comparativa de 3 modelos tradicionales y 2 modelos híbridos, validación cruzada y rigor estadístico (CRISP-DM).")
-
-    # 1. Selector de Acciones
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Benchmarking de 5 Algoritmos",
-        "🎯 Curvas ROC, PR & Matriz de Confusión",
-        "🔬 Pruebas Estadísticas Robustas",
-        "☁️ Entrenamiento GPU en Google Colab"
-    ])
+    # 1. Encabezado del Flujo (ML_LAB)
+    render_step_header("ML_LAB")
 
     csv_path = DATASETS_DIR / "carguio_minero_telemetria.csv"
     if not csv_path.exists():
@@ -40,6 +33,14 @@ def render_ml_lab_view():
         df = generate_base_dataset(n_samples=10000)
     else:
         df = pd.read_csv(csv_path)
+
+    # 2. Selector de Acciones
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Benchmarking de 5 Algoritmos",
+        "🎯 Curvas ROC, PR & Matriz de Confusión",
+        "🔬 Pruebas Estadísticas Robustas",
+        "☁️ Entrenamiento GPU en Google Colab"
+    ])
 
     # -------------------------------------------------------------------------
     # TAB 1: BENCHMARKING DE 5 ALGORITMOS
@@ -74,10 +75,8 @@ def render_ml_lab_view():
             })
         st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
 
-        st.info("💡 **Conclusión Técnica:** Las arquitecturas híbridas (**LSTM-Autoencoder + RF** y **CNN-LSTM**) superan a los algoritmos tradicionales en **Recall** (96.4% vs 91.5%), lo cual es fundamental en mantenimiento predictivo para prevenir paradas no planificadas.")
+        st.info("💡 **Conclusión Técnica:** Las arquitecturas híbridas (**LSTM-Autoencoder + RF** y **CNN-LSTM**) superan a los algoritmos tradicionales en **Recall** (96.4% vs 91.5%), lo cual es fundamental en minería para prevenir paradas imprevistas.")
 
-        # Botón para re-entrenar modelo activo
-        # Botón para re-entrenar modelo activo
         st.divider()
         st.subheader("⚡ Estado y Activación de Modelos en Producción")
 
@@ -99,22 +98,32 @@ def render_ml_lab_view():
                     <b>Algoritmo Oficial:</b> {active_m['nombre_algoritmo']} ({active_m['tipo_arquitectura']}) | <b>Versión:</b> <code>{active_m['version']}</code><br/>
                     <b>📁 Archivo Serializado:</b> <code>{active_m['ruta_archivo']}</code><br/>
                     <b>📊 Métricas Evaluadas:</b> Accuracy: <b>{metrics_dict.get('accuracy', 0.99)*100:.2f}%</b> | F1-Score: <b>{metrics_dict.get('f1_score', 0.98):.4f}</b> | ROC-AUC: <b>{metrics_dict.get('roc_auc', 0.99):.4f}</b><br/>
-                    <b>🎯 ¿Dónde se está usando este modelo?</b>
-                    Este modelo es el que se ejecuta cuando el <i>Operador de Planta</i> inyecta telemetría o cuando llegan datos en faena, calcula la probabilidad de falla de las palas/cargadores, alimenta el panel de riesgos del <i>Dashboard</i> y emite las <i>Órdenes de Trabajo</i> automáticas.
+                    <b>🎯 Rol en el Sistema:</b>
+                    Este modelo realiza la inferencia automática al inyectar datos de sensores, alimenta el panel de riesgos del <i>Dashboard</i> y emite las <i>Órdenes de Trabajo</i> predictivas.
                 </p>
             </div>
             """, unsafe_allow_html=True)
+            
+            act_c1, act_c2 = st.columns(2)
+            with act_c1:
+                if st.button("📡 Probar este Modelo en Telemetría en Vivo (Paso 3)", use_container_width=True):
+                    navigate_to("3️⃣ 📡 Telemetría en Vivo")
+            with act_c2:
+                if st.button("📑 Exportar Ficha Técnica del Modelo en Reportes (Paso 6)", use_container_width=True):
+                    navigate_to("6️⃣ 📑 Generador de Reportes")
         else:
             st.warning("No hay ningún modelo marcado como activo en la base de datos.")
 
         # 2. Selector para calibrar y poner activo un nuevo modelo
+        st.divider()
+        st.subheader("🚀 Entrenar y Desplegar Nuevo Modelo")
         col_m1, col_m2 = st.columns([2, 1])
         with col_m1:
             modelo_sel = st.selectbox(
                 "Seleccione el algoritmo que desea entrenar y activar:",
                 ["Random Forest Classifier", "XGBoost Classifier", "Híbrido LSTM-Autoencoder + RF"]
             )
-            st.caption("ℹ️ Al hacer clic en el botón, el modelo se entrenará en tiempo real sobre el dataset de telemetría minera con balanceo SMOTE, se guardará en disco en `models/saved/` y se convertirá en el modelo activo del sistema.")
+            st.caption("ℹ️ El modelo se entrenará en tiempo real sobre la telemetría minera con balanceo SMOTE, se guardará en `models/saved/` y se convertirá en el modelo activo del sistema.")
         with col_m2:
             st.write("")
             st.write("")
@@ -138,7 +147,7 @@ def render_ml_lab_view():
                     st.success(f"🎉 ¡Modelo {modelo_sel} entrenado, serializado y puesto en producción con éxito! (ID BD: {m_id} | F1: {eval_metrics['f1_score']:.4f})")
                     st.rerun()
 
-        # 3. Historial de modelos registrados en PostgreSQL con opción de activación rápida
+        # 3. Historial de modelos registrados en PostgreSQL
         with st.expander("📜 Ver Historial de Modelos Registrados en PostgreSQL (Cambio Rápido)"):
             all_models = PredictionRepository.list_models()
             if all_models:
@@ -183,7 +192,6 @@ def render_ml_lab_view():
 
         with rc2:
             st.markdown("##### Matriz de Confusión (LSTM-AE + RF)")
-            # Matriz típica sobre test set de 2,000 muestras con ~134 fallas
             cm = [[1858, 8], [5, 129]]
             fig_cm = px.imshow(
                 cm,
@@ -206,7 +214,6 @@ def render_ml_lab_view():
         (y no producto del azar), se comparan los puntajes de **F1-Score** obtenidos en los 5 folds de validación cruzada.
         """)
 
-        # Puntajes en los 5 folds
         f1_hibrido = [0.972, 0.968, 0.975, 0.969, 0.973]
         f1_tradicional = [0.928, 0.935, 0.924, 0.931, 0.923]
 
@@ -237,7 +244,6 @@ def render_ml_lab_view():
         </div>
         """, unsafe_allow_html=True)
 
-        # Gráfico Boxplot de los Folds
         df_folds = pd.DataFrame({
             "Modelo": ["Híbrido (LSTM-AE + RF)"] * 5 + ["Tradicional (Random Forest)"] * 5,
             "F1-Score": f1_hibrido + f1_tradicional
@@ -260,7 +266,7 @@ def render_ml_lab_view():
     with tab4:
         st.subheader("☁️ Ejecución de Entrenamiento con GPU en Google Colab")
         st.markdown("""
-        Como solicitaste, dispones de un script completamente autónomo y optimizado para **GPU CUDA (Google Colab / Servidor GPU)**
+        Dispones de un script completamente autónomo y optimizado para **GPU CUDA (Google Colab / Servidor GPU)**
         que entrena los 5 algoritmos, genera las secuencias temporales en PyTorch y exporta los pesos y métricas.
         """)
 
@@ -287,3 +293,6 @@ def render_ml_lab_view():
 !python train_colab_pipeline.py
 # 5. Descarga la carpeta 'models_exported/' generada con tus modelos entrenados en GPU!
                 """, language="bash")
+
+    # 3. Pie de Navegación del Flujo
+    render_step_footer("ML_LAB")

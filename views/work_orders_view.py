@@ -1,5 +1,6 @@
 """
 Vista de Gestión de Órdenes de Trabajo (OT) de Mantenimiento Predictivo / Correctivo.
+Integrada con el flujo secuencial y exportación de reportes técnicos.
 """
 import streamlit as st
 import pandas as pd
@@ -9,30 +10,43 @@ from database.repositories.equipment_repo import EquipmentRepository
 from database.repositories.prediction_repo import PredictionRepository
 from database.repositories.user_repo import UserRepository
 from auth.session import user_has_permission
+from views.components.flow_guide import render_step_header, render_step_footer, navigate_to
 
 def render_work_orders_view():
-    st.title("🛠️ Gestión de Órdenes de Trabajo (OT)")
-    st.markdown("Programación, seguimiento y cierre de intervenciones técnicas derivadas de diagnósticos de IA.")
+    # 1. Encabezado del Flujo (WORK_ORDERS)
+    render_step_header("WORK_ORDERS")
 
-    # 1. KPIs de Órdenes de Trabajo
+    # 2. KPIs de Órdenes de Trabajo
     stats = WorkOrderRepository.get_stats()
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.metric("Total Órdenes", f"{stats.get('total_ots', 0)}")
     with c2:
-        st.metric("Pendientes", f"{stats.get('pendientes', 0)}", delta="Requieren atención", delta_color="inverse")
+        st.metric("Pendientes", f"{stats.get('pendientes', 0)}", delta="Requieren atención", delta_color="inverse" if stats.get('pendientes', 0) > 0 else "normal")
     with c3:
         st.metric("En Progreso", f"{stats.get('en_progreso', 0)}")
     with c4:
         st.metric("Completadas", f"{stats.get('completadas', 0)}")
     with c5:
-        st.metric("Criticidad Alta/Crítica", f"{stats.get('criticas', 0)}", delta="Prioridad máxima", delta_color="inverse")
+        st.metric("Prioridad Crítica / Alta", f"{stats.get('criticas', 0)}", delta="Atención urgente", delta_color="inverse" if stats.get('criticas', 0) > 0 else "normal")
 
     st.divider()
 
-    # 2. Formulario para Crear Nueva OT (si tiene permiso WORK_ORDERS_MANAGE)
+    # 3. Acciones Rápidas del Flujo
+    st.markdown("##### ⚡ Acciones Directas del Flujo:")
+    wo_c1, wo_c2 = st.columns(2)
+    with wo_c1:
+        if st.button("📡 Volver a Telemetría / Inyectar Nueva Falla (Paso 3)", use_container_width=True):
+            navigate_to("3️⃣ 📡 Telemetría en Vivo")
+    with wo_c2:
+        if st.button("📑 Generar Reporte Formal con estas OTs (Paso 6)", use_container_width=True, type="primary"):
+            navigate_to("6️⃣ 📑 Generador de Reportes")
+
+    st.divider()
+
+    # 4. Formulario para Crear Nueva OT
     if user_has_permission("WORK_ORDERS_MANAGE"):
-        with st.expander("➕ Emitir Nueva Orden de Trabajo"):
+        with st.expander("➕ Emitir Nueva Orden de Trabajo Manual"):
             equipments = EquipmentRepository.list_all()
             users = UserRepository.list_all()
             
@@ -68,8 +82,8 @@ def render_work_orders_view():
                         st.success(f"Orden de trabajo creada con éxito (ID: {ot_id})!")
                         st.rerun()
 
-    # 3. Filtro y Listado de Órdenes de Trabajo
-    st.subheader("📋 Padrón de Órdenes de Trabajo Registradas")
+    # 5. Filtro y Listado de Órdenes de Trabajo
+    st.subheader("📋 Padrón de Órdenes de Trabajo Registradas en PostgreSQL")
     filtro_estado = st.selectbox("Filtrar por Estado:", ["TODAS", "PENDIENTE", "EN_PROGRESO", "COMPLETADA"])
     
     ots = WorkOrderRepository.list_all(estado=None if filtro_estado == "TODAS" else filtro_estado)
@@ -93,7 +107,7 @@ def render_work_orders_view():
                     st.markdown(f"**Estado:** {status_badge}")
                     if user_has_permission("WORK_ORDERS_MANAGE"):
                         if ot["estado"] == "PENDIENTE":
-                            if st.button("▶️ Iniciar", key=f"btn_init_{ot['id']}", use_container_width=True):
+                            if st.button("▶️ Iniciar Trabajo", key=f"btn_init_{ot['id']}", use_container_width=True):
                                 WorkOrderRepository.update_status(ot["id"], "EN_PROGRESO")
                                 st.rerun()
                         elif ot["estado"] == "EN_PROGRESO":
@@ -103,3 +117,6 @@ def render_work_orders_view():
                                 st.rerun()
     else:
         st.info("No se encontraron órdenes de trabajo para este criterio.")
+
+    # 6. Pie de Navegación del Flujo
+    render_step_footer("WORK_ORDERS")

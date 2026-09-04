@@ -1,5 +1,6 @@
 """
 Vista de Administración del Sistema, Matriz de Permisos RBAC y Trazabilidad de Auditoría.
+Integrada con el flujo secuencial y gestión de seguridad.
 """
 import streamlit as st
 import pandas as pd
@@ -7,11 +8,13 @@ from database.repositories.user_repo import UserRepository
 from database.repositories.audit_repo import AuditRepository
 from auth.security import hash_password
 from config.permissions import ROLE_PERMISSIONS_MATRIX, PERMISSIONS
+from views.components.flow_guide import render_step_header, render_step_footer, navigate_to
 
 def render_admin_view():
-    st.title("⚙️ Administración del Sistema y Auditoría de Seguridad")
-    st.markdown("Gestión de credenciales, roles RBAC y trazabilidad de eventos del sistema.")
+    # 1. Encabezado del Flujo (ADMIN)
+    render_step_header("ADMIN")
 
+    # 2. Selector de Pestañas de Administración
     adm_tab1, adm_tab2, adm_tab3 = st.tabs([
         "👥 Usuarios y Credenciales",
         "🔐 Matriz de Permisos RBAC",
@@ -75,7 +78,7 @@ def render_admin_view():
     # 2. Matriz RBAC
     with adm_tab2:
         st.subheader("Matriz de Permisos por Rol (RBAC)")
-        st.markdown("Configuración de acceso granular según los 4 perfiles de usuario del sistema.")
+        st.markdown("Configuración de acceso granular según los 4 perfiles de usuario requeridos.")
         
         roles_list = list(ROLE_PERMISSIONS_MATRIX.keys())
         matrix_data = []
@@ -101,3 +104,6 @@ def render_admin_view():
             )
         else:
             st.info("Sin registros de auditoría recientes.")
+
+    # 3. Pie de Navegación del Flujo
+    render_step_footer("ADMIN")

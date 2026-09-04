@@ -1,18 +1,18 @@
 """
 Vista de Análisis Exploratorio de Datos (CRISP-DM Fase 2 y 3).
-Estadísticas descriptivas, correlaciones, distribuciones multivariables y detección de outliers.
+Estadísticas descriptivas, correlaciones, distribuciones multivariables y detección de patrones de fallo.
 """
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.figure_factory as ff
 from config.settings import DATASETS_DIR
 from data.preprocessor import FEATURE_COLS
+from views.components.flow_guide import render_step_header, render_step_footer, navigate_to
 
 def render_eda_view():
-    st.title("🔬 Análisis Exploratorio de Datos (EDA) - Sensores Mineros")
-    st.markdown("Exploración profunda de telemetría de sensores, correlaciones multivariables y patrones de fallo (CRISP-DM).")
+    # 1. Encabezado del Flujo (EDA)
+    render_step_header("EDA")
 
     csv_path = DATASETS_DIR / "carguio_minero_telemetria.csv"
     if not csv_path.exists():
@@ -22,8 +22,8 @@ def render_eda_view():
     else:
         df = pd.read_csv(csv_path)
 
-    # 1. Resumen Estadístico General
-    st.subheader("📋 Resumen General del Dataset")
+    # 2. Resumen Estadístico General
+    st.subheader("📋 Resumen General del Dataset Industrial")
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.metric("Total Muestras Telemetría", f"{len(df):,}")
@@ -35,16 +35,30 @@ def render_eda_view():
     with m4:
         st.metric("Equipos Monitoreados", f"{df['equipo_tag'].nunique()}")
 
-    # 2. Tabla Descriptiva
+    st.divider()
+
+    # 3. Acciones Rápidas del Flujo
+    st.markdown("##### ⚡ Continuar el Flujo de Análisis:")
+    ea1, ea2 = st.columns(2)
+    with ea1:
+        if st.button("📡 Monitorear Sensores en Tiempo Real (Paso 3)", use_container_width=True):
+            navigate_to("3️⃣ 📡 Telemetría en Vivo")
+    with ea2:
+        if st.button("🤖 Entrenar y Evaluar Modelos con este Dataset (Paso 4)", use_container_width=True, type="primary"):
+            navigate_to("4️⃣ 🤖 Laboratorio de IA")
+
+    st.divider()
+
+    # 4. Tabla Descriptiva
     with st.expander("📊 Ver Estadísticas Descriptivas (Media, Desv. Est., Cuartiles, Asimetría)", expanded=True):
         desc = df[FEATURE_COLS].describe().T
         desc["skewness"] = df[FEATURE_COLS].skew()
         desc = desc.round(2)
         st.dataframe(desc, use_container_width=True)
 
-    # 3. Matriz de Correlación
-    st.subheader("🔥 Matriz de Correlación de Sensores")
-    st.markdown("Identificación de relaciones lineales entre variables térmicas, dinámicas y de desgaste.")
+    # 5. Matriz de Correlación
+    st.subheader("🔥 Matriz de Correlación de Sensores Mineros")
+    st.caption("Identificación de correlaciones Pearson entre variables térmicas, dinámicas y modos de falla.")
     corr = df[FEATURE_COLS + ["falla_maquina"]].corr().round(3)
     fig_corr = px.imshow(
         corr,
@@ -56,7 +70,7 @@ def render_eda_view():
     fig_corr.update_layout(height=480, margin=dict(t=20, b=20, l=20, r=20))
     st.plotly_chart(fig_corr, use_container_width=True)
 
-    # 4. Distribuciones y Separabilidad de Clases
+    # 6. Distribuciones y Separabilidad de Clases
     st.subheader("📈 Distribución de Variables: Operación Normal vs Falla")
     c1, c2 = st.columns(2)
     with c1:
@@ -96,7 +110,7 @@ def render_eda_view():
         fig_hist.update_layout(height=380, margin=dict(t=20, b=20, l=20, r=20))
         st.plotly_chart(fig_hist, use_container_width=True)
 
-    # 5. Diagrama de Dispersión Multivariable (Vibración vs Desgaste / Temperatura vs Presión)
+    # 7. Diagrama de Dispersión Multivariable
     st.subheader("🎯 Dispersión Multivariable y Fronteras de Falla")
     sc1, sc2 = st.columns(2)
     with sc1:
@@ -114,3 +128,6 @@ def render_eda_view():
     )
     fig_scatter.update_layout(height=420, margin=dict(t=30, b=20, l=20, r=20))
     st.plotly_chart(fig_scatter, use_container_width=True)
+
+    # 8. Pie de Navegación del Flujo
+    render_step_footer("EDA")

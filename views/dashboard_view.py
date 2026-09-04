@@ -1,5 +1,6 @@
 """
 Vista de Dashboard Ejecutivo con KPIs de Confiabilidad y Visualizaciones Interactivas (Plotly).
+Integrado con el flujo guiado de mantenimiento predictivo.
 """
 import streamlit as st
 import pandas as pd
@@ -9,16 +10,16 @@ from database.repositories.equipment_repo import EquipmentRepository
 from database.repositories.telemetry_repo import TelemetryRepository
 from database.repositories.prediction_repo import PredictionRepository
 from database.repositories.work_order_repo import WorkOrderRepository
+from views.components.flow_guide import render_step_header, render_step_footer, navigate_to
 
 def render_dashboard_view():
-    st.title("📊 Panel Ejecutivo de Mantenimiento Predictivo")
-    st.markdown("Monitoreo integral de confiabilidad, disponibilidad y estado de salud de la flota de carguío minero.")
+    # 1. Encabezado del Flujo (DASHBOARD)
+    render_step_header("DASHBOARD")
 
-    # 1. Obtener datos de la base de datos
+    # 2. Obtener datos de la base de datos
     equipments = EquipmentRepository.list_all()
     predictions = PredictionRepository.get_recent_predictions(limit=10)
     ot_stats = WorkOrderRepository.get_stats()
-    telemetry_stats = TelemetryRepository.get_overall_stats()
 
     total_eq = len(equipments)
     operativos = sum(1 for e in equipments if e["estado_operativo"] == "OPERATIVO")
@@ -29,22 +30,37 @@ def render_dashboard_view():
     mtbf = 315.4  # Estimado en horas
     mttr = 6.2   # Estimado en horas
 
-    # 2. Tarjetas de KPIs Principales
+    # 3. Tarjetas de KPIs Principales
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
-        st.metric("Disponibilidad Flota", f"{disponibilidad}%", delta=f"{operativos}/{total_eq} equipos")
+        st.metric("Disponibilidad Flota", f"{disponibilidad}%", delta=f"{operativos}/{total_eq} operativos")
     with k2:
         st.metric("MTBF Estimado", f"{mtbf} h", delta="Confiabilidad Alta")
     with k3:
         st.metric("MTTR Promedio", f"{mttr} h", delta="-12% vs mes ant.", delta_color="inverse")
     with k4:
-        st.metric("Equipos en Alerta", f"{en_alerta}", delta="Atención requerida", delta_color="inverse" if en_alerta > 0 else "normal")
+        st.metric("Equipos en Alerta", f"{en_alerta}", delta="Atención requerida" if en_alerta > 0 else "Normal", delta_color="inverse" if en_alerta > 0 else "normal")
     with k5:
-        st.metric("OTs Pendientes", f"{ot_stats.get('pendientes', 0)}", delta=f"{ot_stats.get('criticas', 0)} críticas", delta_color="inverse")
+        st.metric("OTs Pendientes", f"{ot_stats.get('pendientes', 0)}", delta=f"{ot_stats.get('criticas', 0)} críticas", delta_color="inverse" if ot_stats.get('criticas', 0) > 0 else "normal")
 
     st.divider()
 
-    # 3. Gráficos Ejecutivos con Plotly
+    # 4. Acciones Rápidas Directas del Flujo
+    st.markdown("##### ⚡ Acciones Directas del Flujo:")
+    ac1, ac2, ac3 = st.columns(3)
+    with ac1:
+        if st.button("📡 Inspeccionar Telemetría en Tiempo Real", use_container_width=True):
+            navigate_to("3️⃣ 📡 Telemetría en Vivo")
+    with ac2:
+        if st.button("🤖 Explorar Laboratorio de IA & Modelos", use_container_width=True):
+            navigate_to("4️⃣ 🤖 Laboratorio de IA")
+    with ac3:
+        if st.button("🛠️ Ver Órdenes de Trabajo Pendientes", use_container_width=True):
+            navigate_to("5️⃣ 🛠️ Órdenes de Trabajo")
+
+    st.divider()
+
+    # 5. Gráficos Ejecutivos con Plotly
     c1, c2 = st.columns([1, 1])
 
     with c1:
@@ -85,14 +101,14 @@ def render_dashboard_view():
         else:
             st.info("No hay predicciones registradas aún.")
 
-    # 4. Estado Individual de Equipos de Carguío
+    # 6. Estado Individual de Equipos de Carguío
     st.subheader("🚜 Censo de Flota de Carguío Minero en Faena")
     cols = st.columns(len(equipments)) if len(equipments) <= 5 else st.columns(5)
     for idx, eq in enumerate(equipments):
         with cols[idx % 5]:
             status_color = "#10B981" if eq["estado_operativo"] == "OPERATIVO" else ("#F59E0B" if eq["estado_operativo"] == "EN ALERTA" else "#3B82F6")
             st.markdown(f"""
-                <div style="border: 1px solid #CBD5E1; border-left: 5px solid {status_color}; border-radius: 8px; padding: 10px; background-color: #F8FAFC; margin-bottom: 10px;">
+                <div style="border: 1px solid #CBD5E1; border-left: 5px solid {status_color}; border-radius: 8px; padding: 12px; background-color: #F8FAFC; margin-bottom: 8px;">
                     <div style="font-weight: bold; font-size: 1.1rem; color: #1E293B;">{eq['codigo_tag']}</div>
                     <div style="font-size: 0.85rem; color: #64748B;">{eq['marca_modelo']}</div>
                     <div style="font-size: 0.8rem; margin-top: 4px;"><b>Ubicación:</b> {eq['ubicacion_tajo']}</div>
@@ -100,9 +116,12 @@ def render_dashboard_view():
                     <div style="font-size: 0.85rem; font-weight: bold; color: {status_color}; margin-top: 6px;">● {eq['estado_operativo']}</div>
                 </div>
             """, unsafe_allow_html=True)
+            if st.button("📡 Monitorear", key=f"btn_mon_{eq['id']}", use_container_width=True):
+                st.session_state["target_equipment_id"] = eq["id"]
+                navigate_to("3️⃣ 📡 Telemetría en Vivo")
 
-    # 5. Tabla de Alertas Predictivas Recientes
-    st.subheader("⚠️ Diagnósticos Predictivos y Alertas Recientes")
+    # 7. Tabla de Alertas Predictivas Recientes
+    st.subheader("⚠️ Diagnósticos Predictivos y Alertas Recientes de IA")
     if predictions:
         pred_table = []
         for p in predictions:
@@ -117,4 +136,7 @@ def render_dashboard_view():
             })
         st.dataframe(pd.DataFrame(pred_table), use_container_width=True, hide_index=True)
     else:
-        st.info("Sin alertas críticas en el sistema.")
+        st.info("Sin alertas registradas.")
+
+    # 8. Pie de Navegación del Flujo
+    render_step_footer("DASHBOARD")
